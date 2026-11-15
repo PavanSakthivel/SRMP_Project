@@ -1,0 +1,4 @@
+threat_id,nist_800_53,cis_v8,control_name,evidence_test
+T1110,AC-7,CIS 5,Unsuccessful logon attempts / account management,Account lockout line appears after the failure burst
+T1046,SC-7,CIS 13,Boundary protection / network monitoring and defense,Scan traffic is blocked and rate-limited
+T1548,AC-6,CIS 6,Least privilege / access control management,Root elevation is restricted to authorised admin accounts

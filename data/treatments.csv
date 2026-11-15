@@ -1,0 +1,4 @@
+threat_id,treatment
+T1110,Enforce account lockout; disable SSH password login and use key-based authentication; add MFA
+T1046,Restrict firewall rules to required ports only; enable scan rate-limiting; segment the network
+T1548,Review and tighten sudoers; apply least privilege; alert on any non-admin root elevation

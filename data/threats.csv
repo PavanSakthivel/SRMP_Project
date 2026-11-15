@@ -1,0 +1,4 @@
+threat_id,name,mitre_id,base_likelihood,primary_dimension,default_severity
+T1110,Brute-force authentication attack,T1110,4,C,4
+T1046,Network service scanning,T1046,3,C,3
+T1548,Privilege escalation via elevation control abuse,T1548,4,I,5

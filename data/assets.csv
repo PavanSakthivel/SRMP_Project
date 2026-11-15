@@ -1,0 +1,7 @@
+asset_id,hostname,name,type,owner,value,C,I,A
+A1,db-srv-01,Student Records Database,Database server,Registrar,5,5,5,4
+A2,pay-srv-01,Payroll Server,Application server,Finance Office,5,5,5,3
+A3,web-srv-01,Student Web Portal,Web server,IT Services,4,3,4,5
+A4,ws-lab-01,Computer Lab Workstation,Workstation,IT Services,2,2,3,2
+A5,exam-srv-01,Online Exam Server,Application server,Exam Cell,4,4,5,5
+A6,gw-01,Guest Wi-Fi Gateway,Network gateway,IT Services,2,1,2,3

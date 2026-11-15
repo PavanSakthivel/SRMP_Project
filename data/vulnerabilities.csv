@@ -1,0 +1,5 @@
+vuln_id,name,description
+V1,SSH password authentication enabled,Allows password guessing
+V2,No account lockout policy,Unlimited login attempts
+V3,Unnecessary exposed network ports,Larger attack surface
+V4,Over-permissive sudo configuration,Users can gain root easily
