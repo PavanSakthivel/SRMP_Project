@@ -7,10 +7,17 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from engine.db import DATA_DIR
+from engine.db import DATA_DIR, get_connection
 from engine.detect import detect_events
 from engine.parse import parse_file
-from engine.risk import round_half_up, score_and_rank_detections
+from engine.risk import (
+    add_risk_to_db,
+    delete_risk_from_db,
+    round_half_up,
+    score_and_rank_detections,
+    update_risk_in_db,
+)
+from scripts.run_pipeline import run_pipeline
 
 
 def test_round_half_up_edge_cases():
@@ -70,3 +77,67 @@ def test_section_11_golden_table_exact_match():
         assert row["baseline_rank"] == base_rk
         assert row["risk_rank"] == risk_rk
         assert row["shift"] == shift
+
+
+def test_interactive_risk_crud_add_modify_delete(tmp_path: Path):
+    db_path = tmp_path / "crud.db"
+    anchor_dir = tmp_path / "anchor_crud"
+    run_pipeline(
+        log_path=DATA_DIR / "sample" / "auth.log",
+        db_path=db_path,
+        anchor_dir=anchor_dir,
+        verbose=False,
+    )
+
+    conn = get_connection(db_path)
+    try:
+        # 1. Add a new risk with L=5, I=5 -> Risk=25 (Critical), should become Risk Rank #1
+        new_id = add_risk_to_db(
+            conn,
+            title="Phished administrator credentials",
+            asset_id="A1",
+            threat_id="T1110",
+            likelihood=5,
+            impact=5,
+            event_count=25,
+            severity=5,
+            status="In treatment",
+            owner="IT Security",
+        )
+        assert new_id == 7
+
+        row7 = conn.execute("SELECT * FROM risk_scores WHERE detection_id = ?", (new_id,)).fetchone()
+        assert row7["risk"] == 25
+        assert row7["band"] == "Critical"
+        assert row7["risk_rank"] == 1
+
+        # 2. Modify risk 7 to L=2, I=2 -> Risk=4 (Low), status='Verified'
+        update_risk_in_db(
+            conn,
+            detection_id=new_id,
+            likelihood=2,
+            impact=2,
+            status="Verified",
+            title="Updated Phished Admin Scenario",
+        )
+        row7_mod = conn.execute("SELECT * FROM risk_scores WHERE detection_id = ?", (new_id,)).fetchone()
+        assert row7_mod["risk"] == 4
+        assert row7_mod["band"] == "Low"
+        assert row7_mod["risk_rank"] == 7
+
+        iss7 = conn.execute("SELECT * FROM issues WHERE detection_id = ?", (new_id,)).fetchone()
+        assert iss7["status"] == "Verified"
+        assert iss7["risk_score"] == 4
+
+        # 3. Delete risk 7 -> back to 6 detections with ranks 1..6
+        delete_risk_from_db(conn, detection_id=new_id)
+        cnt = conn.execute("SELECT COUNT(*) FROM detections").fetchone()[0]
+        assert cnt == 6
+        ranks = [
+            r[0]
+            for r in conn.execute("SELECT risk_rank FROM risk_scores ORDER BY risk_rank ASC").fetchall()
+        ]
+        assert ranks == [1, 2, 3, 4, 5, 6]
+    finally:
+        conn.close()
+

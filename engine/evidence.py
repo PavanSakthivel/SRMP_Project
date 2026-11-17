@@ -331,10 +331,15 @@ def generate_audit_report_markdown(
                i.control_nist, i.control_cis, i.risk_score, i.risk_band,
                i.recommended_treatment, i.status, i.created_at
         FROM issues i
-        JOIN risk_scores r ON i.detection_id = r.detection_id
-        ORDER BY r.risk_rank ASC, i.issue_id ASC
+        LEFT JOIN risk_scores r ON i.detection_id = r.detection_id
+        ORDER BY COALESCE(r.risk_rank, 999) ASC, i.issue_id ASC
         """
     ).fetchall()
+
+    db_assets = conn.execute(
+        "SELECT asset_id, hostname, name, type, owner, value, c, i, a FROM assets ORDER BY asset_id ASC"
+    ).fetchall()
+    asset_list = [dict(r) for r in db_assets] if db_assets else list(assets_map.values())
 
     lines: list[str] = []
     lines.append("# RiskSIEM Security Risk & Audit Report")
@@ -348,17 +353,20 @@ def generate_audit_report_markdown(
     lines.append("## 1. Audit Scope and Organisation")
     lines.append("")
     lines.append(
-        "Greenfield Institute of Technology (GIT) is a mid-sized higher-education institution operating six core "
+        "Greenfield Institute of Technology (GIT) is a mid-sized higher-education institution operating core "
         "IT assets managed by a lean central IT team. This audit evaluates host authentication (`sshd`, `sudo`, `pam_tally2`) "
-        "and host firewall (`UFW`) logs across all six scoped systems:"
+        "and host firewall (`UFW`) logs across all scoped systems:"
     )
     lines.append("")
     lines.append("| Asset ID | Hostname | Name | Type | Owner | Value | C | I | A |")
     lines.append("|---|---|---|---|---|---:|---:|---:|---:|")
-    for a in assets_map.values():
+    for a in asset_list:
+        c_val = a.get("C", a.get("c", 3))
+        i_val = a.get("I", a.get("i", 3))
+        a_val = a.get("A", a.get("a", 3))
         lines.append(
             f"| {a['asset_id']} | `{a['hostname']}` | {a['name']} | {a['type']} | {a['owner']} | "
-            f"{a['value']} | {a['C']} | {a['I']} | {a['A']} |"
+            f"{a['value']} | {c_val} | {i_val} | {a_val} |"
         )
     lines.append("")
 
